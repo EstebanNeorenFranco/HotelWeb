@@ -1,0 +1,53 @@
+
+DROP PROCEDURE IF EXISTS habitaciones_disponibles; -- Elimina el procedimiento si existe
+
+DELIMITER //
+
+DELIMITER //
+
+CREATE PROCEDURE habitaciones_disponibles(
+    IN p_cantidad_adultos INT,
+    IN p_cantidad_menores INT,
+    IN p_fecha_checkin DATE,
+    IN p_fecha_checkout DATE
+)
+BEGIN
+    SELECT
+        MIN(h.id) AS habitacion_id, -- Selecciona el ID mínimo para cada tipo de habitación
+        h.tipo_habitacion,
+        MIN(h.precio) AS precio -- Selecciona el precio mínimo para cada tipo de habitación
+    FROM 
+        habitacion h
+    WHERE 
+        h.cantidad_huespedes >= (p_cantidad_adultos + p_cantidad_menores) -- Verifica la capacidad
+        AND NOT EXISTS (
+            SELECT 1
+            FROM habitacion_por_reserva hpr
+            JOIN reserva r ON hpr.reserva_id = r.id
+            WHERE 
+                hpr.habitacion_id = h.id
+                AND r.estado_reserva != 'Cancelado'
+                AND (
+                    (p_fecha_checkin BETWEEN r.fecha_checkin AND r.fecha_checkout)
+                    OR (p_fecha_checkout BETWEEN r.fecha_checkin AND r.fecha_checkout)
+                    OR (r.fecha_checkin BETWEEN p_fecha_checkin AND p_fecha_checkout)
+                )
+        )
+    GROUP BY 
+        h.tipo_habitacion; -- Agrupa solo por tipo de habitación
+END //
+
+DELIMITER ;
+
+
+DELIMITER ;
+
+
+DELIMITER ;
+
+
+
+CALL habitaciones_disponibles(1, 1, '2024-11-11', '2024-11-10');
+
+------------------------------------------------------------------
+Para el usuario estoy usando mi cuenta de Auth0 con mi cuenta de github
